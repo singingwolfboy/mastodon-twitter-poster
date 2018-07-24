@@ -1,0 +1,7 @@
+.git
+.cache
+tmp
+test
+vendor
+log
+node_modules
