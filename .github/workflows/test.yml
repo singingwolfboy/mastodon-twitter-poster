@@ -1,0 +1,50 @@
+name: Test
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: "postgresql:9.6-alpine"
+        env:
+          POSTGRES_PASSWORD: rootpw
+    env:
+      - RAILS_ENV=test
+      - COVERAGE=1
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby 2.6.5
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: '2.6.5'
+
+    - name: Cache Ruby dependencies
+      uses: actions/cache@v2
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gems-
+
+    - name: Bundle install
+      run: |
+        bundle config path vendor/bundle
+        bundle install --without production --jobs 4 --retry 3
+
+    - name: Setup database
+      run: bundle exec rake db:setup
+
+    - name: Run tests
+      run: bundle exec rake test
+
+    - name: Send code coverage information to CodeClimate
+      if: ${{ always() }}
+      uses: paambaati/codeclimate-action@v2.7.5
+      env:
+        CC_TEST_REPORTER_ID: fixme
